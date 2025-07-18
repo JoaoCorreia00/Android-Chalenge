@@ -23,7 +23,7 @@ fun BottomNavBar(navController: NavHostController, currentRoute: String?) {
                 icon = {
                     Image(
                         painter = painterResource(
-                            if (currentRoute == "start") R.mipmap.homefill else R.mipmap.home // Use homefill if on start
+                            if (currentRoute == "start") R.mipmap.homefill else R.mipmap.home
                         ),
                         contentDescription = "Home",
                         modifier = Modifier.size(22.dp)
@@ -37,7 +37,7 @@ fun BottomNavBar(navController: NavHostController, currentRoute: String?) {
                 icon = {
                     Image(
                         painter = painterResource(
-                            if (currentRoute == "favorite") R.mipmap.starfill else R.mipmap.star // Use starfill if on favorites
+                            if (currentRoute == "favorite") R.mipmap.starfill else R.mipmap.star
                         ),
                         contentDescription = "Favorites",
                         modifier = Modifier.size(22.dp)

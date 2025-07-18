@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -20,10 +21,20 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.androidchalenge.R
 import com.example.androidchalenge.data.CatImage
 import com.example.androidchalenge.data.fetchCatData
+import com.example.androidchalenge.data.FavoriteCat
+import com.example.androidchalenge.data.AppDatabase
+import com.example.androidchalenge.data.CatRepository
 import com.example.androidchalenge.screen.ui.BottomNavBar
+import kotlinx.coroutines.launch
 
 @Composable
 fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController) {
+    val context = LocalContext.current
+    val database = AppDatabase.getDatabase(context)
+    val repository = remember { CatRepository(database.catDao()) }
+    val favorites by repository.allFavorites.collectAsState(initial = emptyList())
+    val coroutineScope = rememberCoroutineScope()
+
     var catImages by remember { mutableStateOf<List<CatImage>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
@@ -31,7 +42,9 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
     // Trigger API call when composable first appears
     LaunchedEffect(Unit) {
         fetchCatData { images ->
-            catImages = images
+            catImages = images.map { cat ->
+                cat.copy(isFavorite = favorites.any { it.id == cat.id })
+            }
             loading = false
         }
     }
@@ -65,8 +78,22 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
                                     onCatClick = {
                                         navController.navigate("detail/${cat.id}")
                                     },
-                                    onStarClick = {
-                                        // Handle star click
+                                    onStarClick = { isFavorite ->
+                                        coroutineScope.launch {
+                                            if (isFavorite) {
+                                                repository.addFavorite(
+                                                    FavoriteCat(
+                                                        id = cat.id
+                                                    )
+                                                )
+                                            } else {
+                                                repository.removeFavorite(
+                                                    FavoriteCat(
+                                                        id = cat.id
+                                                    )
+                                                )
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -112,8 +139,10 @@ fun SearchBar() {
 fun CatSquareWithInfo(
     cat: CatImage,
     onCatClick: () -> Unit,
-    onStarClick: () -> Unit
+    onStarClick: (Boolean) -> Unit // Change to accept the favorite state
 ) {
+    var isFavorite by remember { mutableStateOf(cat.isFavorite) } // Local state for favorite status
+
     Column(
         modifier = Modifier.padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -134,13 +163,19 @@ fun CatSquareWithInfo(
 
             // Clickable star in top-right corner
             Image(
-                painter = painterResource(R.mipmap.stargold),
+                painter = painterResource(
+                    if (isFavorite) R.mipmap.stargoldfill // Use filled star if favorite
+                    else R.mipmap.stargold // Use outline star if not favorite
+                ),
                 contentDescription = "Toggle Favorite",
                 modifier = Modifier
                     .size(40.dp)
                     .align(Alignment.TopEnd)
                     .clickable(
-                        onClick = onStarClick,
+                        onClick = {
+                            isFavorite = !isFavorite // Toggle local favorite state
+                            onStarClick(isFavorite) // Notify parent of the change
+                        },
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null // Remove ripple if undesired
                     )
