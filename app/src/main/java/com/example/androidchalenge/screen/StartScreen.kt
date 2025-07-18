@@ -1,23 +1,26 @@
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.example.androidchalenge.R
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Query
+import com.example.androidchalenge.data.CatImage
+import com.example.androidchalenge.data.fetchCatData
+import com.example.androidchalenge.screen.ui.BottomNavBar
 
 @Composable
 fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController) {
@@ -35,7 +38,11 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
 
     // Use a Scaffold to manage the layout
     Scaffold(
-        bottomBar = { BottomNavBar(navController) }
+        topBar = {
+            // Search Bar
+            SearchBar()
+        },
+        bottomBar = { BottomNavBar(navController, "start") } // Use the new BottomNavBar
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -53,7 +60,15 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
                     catImages.chunked(2).forEach { rowImages ->
                         Row {
                             rowImages.forEach { cat ->
-                                CatSquareWithInfo(cat)
+                                CatSquareWithInfo(
+                                    cat = cat,
+                                    onCatClick = {
+                                        navController.navigate("detail/${cat.id}")
+                                    },
+                                    onStarClick = {
+                                        // Handle star click
+                                    }
+                                )
                             }
                         }
                     }
@@ -64,96 +79,80 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
 }
 
 @Composable
-fun CatSquareWithInfo(cat: CatImage) {
+fun SearchBar() {
+    var searchText by remember { mutableStateOf("") } // State for search text
+
+    TextField(
+        value = searchText,
+        onValueChange = { searchText = it },
+        placeholder = { Text("Search for cats...") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        ),
+        singleLine = true,
+        shape = RoundedCornerShape(16.dp),
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search"
+            )
+        }
+    )
+}
+
+@Composable
+fun CatSquareWithInfo(
+    cat: CatImage,
+    onCatClick: () -> Unit,
+    onStarClick: () -> Unit
+) {
     Column(
         modifier = Modifier.padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Load the cat image from the URL
-        Image(
-            painter = rememberImagePainter(cat.url),
-            contentDescription = "Cat Image",
+        // Clickable container for cat image
+        Box(
             modifier = Modifier
                 .size(150.dp)
-                .background(MaterialTheme.colorScheme.secondary)
-        )
+                .clickable(onClick = onCatClick) // Main image click
+        ) {
+            // Cat image (not directly clickable, parent box handles it)
+            Image(
+                painter = rememberAsyncImagePainter(cat.url),
+                contentDescription = "Cat Image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
 
-        // API info string below the image
+            // Clickable star in top-right corner
+            Image(
+                painter = painterResource(R.mipmap.stargold),
+                contentDescription = "Toggle Favorite",
+                modifier = Modifier
+                    .size(40.dp)
+                    .align(Alignment.TopEnd)
+                    .clickable(
+                        onClick = onStarClick,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null // Remove ripple if undesired
+                    )
+                    .padding(4.dp)
+            )
+        }
+
+        // Breed name text (non-clickable)
         Text(
-            text = "ID: ${cat.id}\nName: ${cat.breeds.firstOrNull()?.name ?: "Unknown"}",
+            text = cat.breeds.firstOrNull()?.name ?: "Unknown",
             modifier = Modifier.padding(top = 8.dp),
             style = MaterialTheme.typography.bodySmall
         )
-    }
-}
-
-@Composable
-fun BottomNavBar(navController: NavHostController) {
-    BottomAppBar {
-        NavigationBar {
-            NavigationBarItem(
-                selected = false,
-                onClick = { navController.navigate("start") },
-                icon = { Image(
-                    painter = painterResource(R.mipmap.homefill),
-                    contentDescription = "Home",
-                    modifier = Modifier.size(22.dp)
-                ) },
-                label = { Text("Home") }
-            )
-            NavigationBarItem(
-                selected = false,
-                onClick = { navController.navigate("favorite") },
-                icon = { Image(
-                    painter = painterResource(R.mipmap.star),
-                    contentDescription = "Favorites",
-                    modifier = Modifier.size(22.dp)
-                ) },
-                label = { Text("Favorites") }
-            )
-        }
-    }
-}
-
-// API Data Classes
-data class CatImage(
-    val id: String,
-    val url: String,
-    val breeds: List<Breed> // Include breeds list
-)
-
-data class Breed(
-    val name: String,
-    val id: String
-)
-
-// API Service Interface
-interface CatApiService {
-    @GET("images/search")
-    suspend fun getCatImages(
-        @Query("limit") limit: Int = 8,  // Fetch images
-        @Query("has_breeds") breedIds: Int = 1,
-        @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
-    ): List<CatImage>
-}
-
-// API Call Function
-private suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
-    try {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://api.thecatapi.com/v1/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val service = retrofit.create(CatApiService::class.java)
-        val cats = service.getCatImages()
-
-        withContext(Dispatchers.Main) {
-            onResult(cats)
-        }
-    } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-            onResult(emptyList()) // Return an empty list on error
-        }
     }
 }

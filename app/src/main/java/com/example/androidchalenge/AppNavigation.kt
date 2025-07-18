@@ -20,8 +20,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             StartScreen(modifier, navController)
         }
 
-        composable("detail"){
-            DetailScreen(modifier,navController)
+        composable("detail/{Id}"){
+            var id = it.arguments?.getString("Id")
+            DetailScreen(modifier,navController,id?:"")
         }
 
         composable("favorite"){
