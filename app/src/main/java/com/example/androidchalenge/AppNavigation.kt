@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.androidchalenge.screen.BreedsScreen
 import com.example.androidchalenge.screen.DetailScreen
 import com.example.androidchalenge.screen.FavoriteScreen
 
@@ -27,6 +28,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         composable("favorite"){
             FavoriteScreen(modifier,navController)
+        }
+
+        composable("breed"){
+            BreedsScreen(modifier,navController)
         }
 
     }

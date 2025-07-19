@@ -32,7 +32,21 @@ fun BottomNavBar(navController: NavHostController, currentRoute: String?) {
                 label = { Text("Home") },
             )
             NavigationBarItem(
-                selected = false, // Set selected to false to avoid the border
+                selected = false,
+                onClick = { navController.navigate("breed") },
+                icon = {
+                    Image(
+                        painter = painterResource(
+                            if (currentRoute == "breed") R.mipmap.petsfill else R.mipmap.pets
+                        ),
+                        contentDescription = "Breeds",
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                label = { Text("Breeds") },
+            )
+            NavigationBarItem(
+                selected = false,
                 onClick = { navController.navigate("favorite") },
                 icon = {
                     Image(

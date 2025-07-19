@@ -22,18 +22,26 @@ data class Breed(
     val id: String
 )
 
+data class CatBreed(
+    val id: String,
+    val name: String
+)
+
 // API Service Interface
 interface CatApiService {
     @GET("images/search")
     suspend fun getCatImages(
-        @Query("limit") limit: Int = 10,  // Fetch images
+        @Query("limit") limit: Int = 10,
         @Query("has_breeds") hasBreeds: Int = 1,
         @Query("page") page: Int = 0,
         @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
     ): List<CatImage>
+
+    @GET("breeds")
+    suspend fun getCatBreeds(): List<CatBreed> //method to fetch breeds
 }
 
-// API Call Function
+// API Call Functions
 suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
     try {
         val retrofit = Retrofit.Builder()
@@ -44,13 +52,32 @@ suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
         val service = retrofit.create(CatApiService::class.java)
         val cats = service.getCatImages()
 
-        //Log.d("CatData", "Fetched cats: $cats")
-
         withContext(Dispatchers.Main) {
             onResult(cats)
         }
     } catch (e: Exception) {
-        //Log.e("CatData", "Error fetching cat data", e)
+        // Log error if needed
+        withContext(Dispatchers.Main) {
+            onResult(emptyList()) // Return an empty list on error
+        }
+    }
+}
+
+suspend fun fetchCatBreeds(onResult: (List<CatBreed>) -> Unit) {
+    try {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.thecatapi.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val service = retrofit.create(CatApiService::class.java)
+        val breeds = service.getCatBreeds()
+
+        withContext(Dispatchers.Main) {
+            onResult(breeds)
+        }
+    } catch (e: Exception) {
+        // Log error if needed
         withContext(Dispatchers.Main) {
             onResult(emptyList()) // Return an empty list on error
         }
