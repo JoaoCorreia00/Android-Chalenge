@@ -58,7 +58,10 @@ fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostControll
                                             Breed(
                                                 name = favoriteCat.name,
                                                 life_span = favoriteCat.lifeSpan,
-                                                id = ""
+                                                id = "",
+                                                origin = "",
+                                                temperament = "",
+                                                description = ""
                                             )
                                         )
                                     ),

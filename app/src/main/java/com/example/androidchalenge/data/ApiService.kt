@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 // API Data Classes
@@ -19,6 +20,9 @@ data class CatImage(
 data class Breed(
     val name: String,
     val life_span: String,
+    val origin: String,
+    val temperament: String,
+    val description: String,
     val id: String
 )
 
@@ -38,7 +42,13 @@ interface CatApiService {
     ): List<CatImage>
 
     @GET("breeds")
-    suspend fun getCatBreeds(): List<CatBreed> //method to fetch breeds
+    suspend fun getCatBreeds(): List<CatBreed>
+
+    @GET("images/{id}")
+    suspend fun getCatById(
+        @Path("id") id: String,
+        @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
+    ): CatImage
 }
 
 // API Call Functions
@@ -56,9 +66,8 @@ suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
             onResult(cats)
         }
     } catch (e: Exception) {
-        // Log error if needed
         withContext(Dispatchers.Main) {
-            onResult(emptyList()) // Return an empty list on error
+            onResult(emptyList())
         }
     }
 }
@@ -77,9 +86,28 @@ suspend fun fetchCatBreeds(onResult: (List<CatBreed>) -> Unit) {
             onResult(breeds)
         }
     } catch (e: Exception) {
-        // Log error if needed
         withContext(Dispatchers.Main) {
-            onResult(emptyList()) // Return an empty list on error
+            onResult(emptyList())
+        }
+    }
+}
+
+suspend fun fetchCatById(id: String, onResult: (CatImage?) -> Unit) {
+    try {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.thecatapi.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val service = retrofit.create(CatApiService::class.java)
+        val catImage = service.getCatById(id = id)
+
+        withContext(Dispatchers.Main) {
+            onResult(catImage)
+        }
+    } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+            onResult(null)
         }
     }
 }
