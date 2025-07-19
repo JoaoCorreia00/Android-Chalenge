@@ -1,5 +1,6 @@
 package com.example.androidchalenge.data
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
@@ -17,6 +18,7 @@ data class CatImage(
 
 data class Breed(
     val name: String,
+    val life_span: String,
     val id: String
 )
 
@@ -42,10 +44,13 @@ suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
         val service = retrofit.create(CatApiService::class.java)
         val cats = service.getCatImages()
 
+        //Log.d("CatData", "Fetched cats: $cats")
+
         withContext(Dispatchers.Main) {
             onResult(cats)
         }
     } catch (e: Exception) {
+        //Log.e("CatData", "Error fetching cat data", e)
         withContext(Dispatchers.Main) {
             onResult(emptyList()) // Return an empty list on error
         }

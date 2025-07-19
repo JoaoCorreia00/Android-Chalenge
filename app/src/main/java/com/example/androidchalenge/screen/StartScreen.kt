@@ -80,18 +80,18 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
                                     },
                                     onStarClick = { isFavorite ->
                                         coroutineScope.launch {
+                                            val breed = cat.breeds.firstOrNull()
+                                            val favoriteCat = FavoriteCat(
+                                                id = cat.id,
+                                                url = cat.url,
+                                                name = breed?.name ?: "Unknown",
+                                                lifeSpan = breed?.life_span ?: "Unknown",
+                                            )
+
                                             if (isFavorite) {
-                                                repository.addFavorite(
-                                                    FavoriteCat(
-                                                        id = cat.id
-                                                    )
-                                                )
+                                                repository.addFavorite(favoriteCat) // Add to favorites
                                             } else {
-                                                repository.removeFavorite(
-                                                    FavoriteCat(
-                                                        id = cat.id
-                                                    )
-                                                )
+                                                repository.removeFavorite(favoriteCat) // Remove from favorites
                                             }
                                         }
                                     }
@@ -107,7 +107,7 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
 
 @Composable
 fun SearchBar() {
-    var searchText by remember { mutableStateOf("") } // State for search text
+    var searchText by remember { mutableStateOf("") }
 
     TextField(
         value = searchText,
@@ -139,21 +139,20 @@ fun SearchBar() {
 fun CatSquareWithInfo(
     cat: CatImage,
     onCatClick: () -> Unit,
-    onStarClick: (Boolean) -> Unit // Change to accept the favorite state
+    onStarClick: (Boolean) -> Unit
 ) {
-    var isFavorite by remember { mutableStateOf(cat.isFavorite) } // Local state for favorite status
+    var isFavorite by remember { mutableStateOf(cat.isFavorite) }
 
     Column(
         modifier = Modifier.padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Clickable container for cat image
         Box(
             modifier = Modifier
                 .size(150.dp)
-                .clickable(onClick = onCatClick) // Main image click
+                .clickable(onClick = onCatClick)
         ) {
-            // Cat image (not directly clickable, parent box handles it)
+            // Cat image
             Image(
                 painter = rememberAsyncImagePainter(cat.url),
                 contentDescription = "Cat Image",
@@ -161,11 +160,11 @@ fun CatSquareWithInfo(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Clickable star in top-right corner
+            // star in top-right corner
             Image(
                 painter = painterResource(
-                    if (isFavorite) R.mipmap.stargoldfill // Use filled star if favorite
-                    else R.mipmap.stargold // Use outline star if not favorite
+                    if (isFavorite) R.mipmap.stargoldfill
+                    else R.mipmap.stargold
                 ),
                 contentDescription = "Toggle Favorite",
                 modifier = Modifier
@@ -173,17 +172,17 @@ fun CatSquareWithInfo(
                     .align(Alignment.TopEnd)
                     .clickable(
                         onClick = {
-                            isFavorite = !isFavorite // Toggle local favorite state
-                            onStarClick(isFavorite) // Notify parent of the change
+                            isFavorite = !isFavorite
+                            onStarClick(isFavorite)
                         },
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null // Remove ripple if undesired
+                        indication = null
                     )
                     .padding(4.dp)
             )
         }
 
-        // Breed name text (non-clickable)
+        // Breed name text
         Text(
             text = cat.breeds.firstOrNull()?.name ?: "Unknown",
             modifier = Modifier.padding(top = 8.dp),
