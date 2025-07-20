@@ -49,6 +49,13 @@ interface CatApiService {
         @Path("id") id: String,
         @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
     ): CatImage
+
+    @GET("images/search")
+    suspend fun getCatImagesByBreedId(
+        @Query("breed_ids") breedId: String,
+        @Query("has_breeds") hasBreeds: Int = 1,
+        @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
+    ): List<CatImage>
 }
 
 // API Call Functions
@@ -108,6 +115,26 @@ suspend fun fetchCatById(id: String, onResult: (CatImage?) -> Unit) {
     } catch (e: Exception) {
         withContext(Dispatchers.Main) {
             onResult(null)
+        }
+    }
+}
+
+suspend fun fetchCatImagesByBreedId(breedId: String, onResult: (List<CatImage>) -> Unit) {
+    try {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.thecatapi.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val service = retrofit.create(CatApiService::class.java)
+        val cats = service.getCatImagesByBreedId(breedId)
+
+        withContext(Dispatchers.Main) {
+            onResult(cats)
+        }
+    } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+            onResult(emptyList())
         }
     }
 }

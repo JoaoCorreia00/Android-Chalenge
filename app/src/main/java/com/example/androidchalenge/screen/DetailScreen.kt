@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
@@ -117,10 +118,12 @@ fun DetailScreen(modifier: Modifier = Modifier, navController: NavHostController
                     // Display cat information
                     cat.breeds.firstOrNull()?.let { breed ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Name: ${breed.name}", style = MaterialTheme.typography.titleLarge)
-                            Text(text = "Origin: ${breed.origin}", style = MaterialTheme.typography.bodyMedium)
+                            Text(text = breed.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text(text = breed.origin, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(text = breed.description, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(text = "Temperament: ${breed.temperament}", style = MaterialTheme.typography.bodyMedium)
-                            Text(text = "Description: ${breed.description}", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 } ?: run {

@@ -15,7 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.androidchalenge.R
@@ -112,7 +115,15 @@ fun SearchBar() {
     TextField(
         value = searchText,
         onValueChange = { searchText = it },
-        placeholder = { Text("Search for cats...") },
+        placeholder = {
+            Text(
+                text = "Search for cat breeds (e.g., Persian, Bengal)",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            )
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp),
