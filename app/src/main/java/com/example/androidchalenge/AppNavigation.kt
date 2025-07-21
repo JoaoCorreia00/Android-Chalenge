@@ -17,22 +17,22 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
     NavHost(navController = navController, startDestination = "start") {
 
-        composable("start"){
-            StartScreen(modifier, navController)
+        composable("start?breed={breed}") { backStackEntry ->
+            val breedName = backStackEntry.arguments?.getString("breed")
+            StartScreen(modifier, navController, breedName)
         }
 
-        composable("detail/{Id}"){
-            var id = it.arguments?.getString("Id")
-            DetailScreen(modifier,navController,id?:"")
+        composable("detail/{Id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("Id")
+            DetailScreen(modifier, navController, id ?: "")
         }
 
-        composable("favorite"){
-            FavoriteScreen(modifier,navController)
+        composable("favorite") {
+            FavoriteScreen(modifier, navController)
         }
 
-        composable("breed"){
-            BreedsScreen(modifier,navController)
+        composable("breed") {
+            BreedsScreen(modifier, navController)
         }
-
     }
 }

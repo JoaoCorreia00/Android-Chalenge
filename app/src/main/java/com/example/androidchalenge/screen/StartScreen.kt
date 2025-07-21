@@ -27,6 +27,7 @@ import com.example.androidchalenge.data.CatImage
 import com.example.androidchalenge.data.fetchCatData
 import com.example.androidchalenge.data.FavoriteCat
 import com.example.androidchalenge.data.AppDatabase
+import com.example.androidchalenge.data.CatBreed
 import com.example.androidchalenge.data.CatRepository
 import com.example.androidchalenge.data.fetchCatBreeds
 import com.example.androidchalenge.data.fetchCatImagesByBreedId
@@ -34,7 +35,7 @@ import com.example.androidchalenge.screen.ui.BottomNavBar
 import kotlinx.coroutines.launch
 
 @Composable
-fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController) {
+fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController, breedName: String? = null) {
     val context = LocalContext.current
     val database = AppDatabase.getDatabase(context)
     val repository = remember { CatRepository(database.catDao()) }
@@ -46,10 +47,15 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
     var currentPage by remember { mutableIntStateOf(0) }
     var noResults by remember { mutableStateOf(false) }
     var currentBreedIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    var breeds by remember { mutableStateOf<List<CatBreed>>(emptyList()) }
+    var filteredBreeds by remember { mutableStateOf<List<CatBreed>>(emptyList()) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf(breedName ?: "") }
     val itemsPerPage = 10
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
+        breeds = fetchCatBreeds()
         loadCats(currentPage, itemsPerPage) { images ->
             catImages = images.map { cat ->
                 cat.copy(isFavorite = favorites.any { it.id == cat.id })
@@ -57,49 +63,86 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
             loading = false
             noResults = catImages.isEmpty()
         }
+
+        if (!searchText.isBlank()) {
+            val breedNameList = searchText.split(",").map { it.trim() }
+            val breedIds = breeds.filter { breed ->
+                breedNameList.any { name -> breed.name.equals(name, ignoreCase = true) }
+            }.map { it.id }
+
+            if (breedIds.isNotEmpty()) {
+                currentBreedIds = breedIds
+                // Fetch cats by breed IDs
+                loadCatsByBreedIds(breedIds, currentPage, itemsPerPage) { images ->
+                    catImages = images.map { cat ->
+                        cat.copy(isFavorite = favorites.any { it.id == cat.id })
+                    }
+                    loading = false
+                    noResults = catImages.isEmpty()
+                }
+            } else {
+                catImages = emptyList()
+                loading = false
+                noResults = true
+                currentBreedIds = emptyList()
+            }
+        }
     }
 
     // Use a Scaffold to manage the layout
     Scaffold(
         topBar = {
             // Search Bar
-            SearchBar { breedNames ->
-                coroutineScope.launch {
-                    if (breedNames.isBlank()) {
-                        loadCats(currentPage, itemsPerPage) { images ->
-                            catImages = images.map { cat ->
-                                cat.copy(isFavorite = favorites.any { it.id == cat.id })
-                            }
-                            loading = false
-                            noResults = catImages.isEmpty()
-                            currentBreedIds = emptyList() // Reset current breed IDs
-                        }
-                    } else {
-                        val breedNameList = breedNames.split(",").map { it.trim() }
-                        val breeds = fetchCatBreeds()
-                        val breedIds = breeds.filter { breed ->
-                            breedNameList.any { name -> breed.name.equals(name, ignoreCase = true) }
-                        }.map { it.id }
-
-                        if (breedIds.isNotEmpty()) {
-                            currentBreedIds = breedIds // Set current breed IDs
-                            // Fetch cats by breed IDs
-                            loadCatsByBreedIds(breedIds, currentPage, itemsPerPage) { images ->
+            SearchBar(
+                onSearch = { breedNames ->
+                    coroutineScope.launch {
+                        showSuggestions = false
+                        if (breedNames.isBlank()) {
+                            loadCats(currentPage, itemsPerPage) { images ->
                                 catImages = images.map { cat ->
                                     cat.copy(isFavorite = favorites.any { it.id == cat.id })
                                 }
                                 loading = false
                                 noResults = catImages.isEmpty()
+                                currentBreedIds = emptyList()
                             }
                         } else {
-                            catImages = emptyList()
-                            loading = false
-                            noResults = true
-                            currentBreedIds = emptyList()
+                            val breedNameList = breedNames.split(",").map { it.trim() }
+                            val breedIds = breeds.filter { breed ->
+                                breedNameList.any { name -> breed.name.equals(name, ignoreCase = true) }
+                            }.map { it.id }
+
+                            if (breedIds.isNotEmpty()) {
+                                currentBreedIds = breedIds
+                                // Fetch cats by breed IDs
+                                loadCatsByBreedIds(breedIds, currentPage, itemsPerPage) { images ->
+                                    catImages = images.map { cat ->
+                                        cat.copy(isFavorite = favorites.any { it.id == cat.id })
+                                    }
+                                    loading = false
+                                    noResults = catImages.isEmpty()
+                                }
+                            } else {
+                                catImages = emptyList()
+                                loading = false
+                                noResults = true
+                                currentBreedIds = emptyList()
+                            }
                         }
                     }
-                }
-            }
+                },
+                onTextChange = { text ->
+                    searchText = text
+                    val breedNameList = text.split(",").map { it.trim() }
+                    filteredBreeds = breeds.filter { breed ->
+                        breedNameList.any { name -> breed.name.contains(name, ignoreCase = true) }
+                    }
+                    showSuggestions = text.isNotEmpty() && filteredBreeds.isNotEmpty()
+                },
+                filteredBreeds = filteredBreeds,
+                showSuggestions = showSuggestions,
+                searchText = searchText
+            )
         },
         bottomBar = { BottomNavBar(navController, "start") } // Use the new BottomNavBar
     ) { paddingValues ->
@@ -191,40 +234,75 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController)
 }
 
 @Composable
-fun SearchBar(onSearch: (String) -> Unit) {
-    var searchText by remember { mutableStateOf("") }
+fun SearchBar(
+    onSearch: (String) -> Unit,
+    onTextChange: (String) -> Unit,
+    filteredBreeds: List<CatBreed>,
+    showSuggestions: Boolean,
+    searchText: String
+) {
+    var localSearchText by remember { mutableStateOf(searchText) }
 
-    TextField(
-        value = searchText,
-        onValueChange = { searchText = it },
-        placeholder = {
-            Text(
-                text = "Search for cat breeds (e.g., Persian, Bengal)",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
+    Column {
+        TextField(
+            value = localSearchText,
+            onValueChange = {
+                localSearchText = it
+                onTextChange(it)
+            },
+            placeholder = {
+                Text(
+                    text = "Search for cat breeds (e.g., Persian, Bengal)",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    )
                 )
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent
-        ),
-        singleLine = true,
-        shape = RoundedCornerShape(16.dp),
-        trailingIcon = {
-            IconButton(onClick = { onSearch(searchText) }) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            trailingIcon = {
+                IconButton(onClick = { onSearch(localSearchText) }) {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                }
+            }
+        )
+
+        if (showSuggestions && filteredBreeds.isNotEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                filteredBreeds.forEach { breed ->
+                    Text(
+                        text = breed.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val lastCommaIndex = localSearchText.lastIndexOf(",")
+                                localSearchText = if (lastCommaIndex != -1) {
+                                    localSearchText.substring(0, lastCommaIndex) + ", ${breed.name}"
+                                } else {
+                                    breed.name
+                                }
+                                onTextChange(localSearchText)
+                                onSearch(localSearchText)
+                            }
+                            .padding(8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -295,5 +373,3 @@ private suspend fun loadCatsByBreedIds(breedIds: List<String>, page: Int, limit:
         onResult(images)
     }
 }
-
-

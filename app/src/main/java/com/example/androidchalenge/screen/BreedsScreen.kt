@@ -56,7 +56,7 @@ fun BreedsScreen(modifier: Modifier = Modifier, navController: NavHostController
                                 BreedBox(
                                     breed = breed,
                                     onBreedClick = {
-                                        // Handle breed click
+                                        navController.navigate("start?breed=${breed.name}")
                                     }
                                 )
                             }
