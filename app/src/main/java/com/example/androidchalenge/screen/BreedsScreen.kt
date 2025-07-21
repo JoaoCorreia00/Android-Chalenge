@@ -17,16 +17,18 @@ import androidx.navigation.NavHostController
 import com.example.androidchalenge.data.CatBreed
 import com.example.androidchalenge.data.fetchCatBreeds
 import com.example.androidchalenge.screen.ui.BottomNavBar
+import kotlinx.coroutines.launch
 
 @Composable
 fun BreedsScreen(modifier: Modifier = Modifier, navController: NavHostController) {
     var breeds by remember { mutableStateOf<List<CatBreed>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        fetchCatBreeds { fetchedBreeds ->
-            breeds = fetchedBreeds
+        coroutineScope.launch {
+            breeds = fetchCatBreeds()
             loading = false
         }
     }
@@ -77,8 +79,8 @@ fun BreedBox(
             .width(145.dp)
             .height(52.dp)
             .clickable(onClick = onBreedClick)
-            .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(8.dp)),
+            .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(16.dp)),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

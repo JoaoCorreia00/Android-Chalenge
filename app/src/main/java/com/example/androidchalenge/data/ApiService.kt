@@ -54,12 +54,14 @@ interface CatApiService {
     suspend fun getCatImagesByBreedId(
         @Query("breed_ids") breedId: String,
         @Query("has_breeds") hasBreeds: Int = 1,
+        @Query("page") page: Int = 0,
+        @Query("limit") limit: Int = 10,
         @Query("api_key") apiKey: String = "live_qny0T4AdsHpCgOBoqpbZNkiqEBjR3kqFz7TLbpS51gz6cjkFcyN0lIWqLwQQpqUv"
     ): List<CatImage>
 }
 
 // API Call Functions
-suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
+suspend fun fetchCatData(page: Int, limit: Int, onResult: (List<CatImage>) -> Unit) {
     try {
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.thecatapi.com/v1/")
@@ -67,7 +69,7 @@ suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
             .build()
 
         val service = retrofit.create(CatApiService::class.java)
-        val cats = service.getCatImages()
+        val cats = service.getCatImages(page = page, limit = limit)
 
         withContext(Dispatchers.Main) {
             onResult(cats)
@@ -79,22 +81,17 @@ suspend fun fetchCatData(onResult: (List<CatImage>) -> Unit) {
     }
 }
 
-suspend fun fetchCatBreeds(onResult: (List<CatBreed>) -> Unit) {
-    try {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://api.thecatapi.com/v1/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val service = retrofit.create(CatApiService::class.java)
-        val breeds = service.getCatBreeds()
-
-        withContext(Dispatchers.Main) {
-            onResult(breeds)
-        }
-    } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-            onResult(emptyList())
+suspend fun fetchCatBreeds(): List<CatBreed> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://api.thecatapi.com/v1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            val service = retrofit.create(CatApiService::class.java)
+            service.getCatBreeds()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }
@@ -119,7 +116,7 @@ suspend fun fetchCatById(id: String, onResult: (CatImage?) -> Unit) {
     }
 }
 
-suspend fun fetchCatImagesByBreedId(breedId: String, onResult: (List<CatImage>) -> Unit) {
+suspend fun fetchCatImagesByBreedId(breedId: String, page: Int, limit: Int, onResult: (List<CatImage>) -> Unit) {
     try {
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.thecatapi.com/v1/")
@@ -127,7 +124,7 @@ suspend fun fetchCatImagesByBreedId(breedId: String, onResult: (List<CatImage>) 
             .build()
 
         val service = retrofit.create(CatApiService::class.java)
-        val cats = service.getCatImagesByBreedId(breedId)
+        val cats = service.getCatImagesByBreedId(breedId, page = page, limit = limit)
 
         withContext(Dispatchers.Main) {
             onResult(cats)
