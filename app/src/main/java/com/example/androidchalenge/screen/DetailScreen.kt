@@ -17,39 +17,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.androidchalenge.data.CatImage
-import com.example.androidchalenge.data.fetchCatById
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.androidchalenge.R
 import com.example.androidchalenge.data.AppDatabase
 import com.example.androidchalenge.data.CatRepository
-import com.example.androidchalenge.data.FavoriteCat
 import com.example.androidchalenge.screen.ui.BottomNavBar
-import kotlinx.coroutines.launch
-import com.example.androidchalenge.R
-import kotlinx.coroutines.flow.first
+import com.example.androidchalenge.viewModel.DetailViewModel
+import com.example.androidchalenge.viewModel.ViewModelFactory
 
 @Composable
 fun DetailScreen(modifier: Modifier = Modifier, navController: NavHostController, id: String) {
     val context = LocalContext.current
-    val database = AppDatabase.getDatabase(context)
-    val repository = remember { CatRepository(database.catDao()) }
-    val coroutineScope = rememberCoroutineScope()
+    val repository = remember { CatRepository(AppDatabase.getDatabase(context).catDao()) }
+    val viewModel: DetailViewModel = viewModel(factory = ViewModelFactory(repository))
 
-    var catImage by remember { mutableStateOf<CatImage?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var isFavorite by remember { mutableStateOf(false) }
+    val catImage by viewModel.catImage.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val isFavorite by viewModel.isFavorite.collectAsState()
 
     LaunchedEffect(id) {
-        fetchCatById(id) { result ->
-            catImage = result
-            loading = false
-
-            result?.let { cat ->
-                coroutineScope.launch {
-                    val favorites = repository.allFavorites.first()
-                    isFavorite = favorites.any { it.id == cat.id }
-                }
-            }
-        }
+        viewModel.fetchCatDetails(id)
     }
 
     Scaffold(
@@ -94,28 +81,12 @@ fun DetailScreen(modifier: Modifier = Modifier, navController: NavHostController
                                     interactionSource = interactionSource,
                                     indication = null
                                 ) {
-                                    isFavorite = !isFavorite
-                                    coroutineScope.launch {
-                                        val breed = cat.breeds.firstOrNull()
-                                        val favoriteCat = FavoriteCat(
-                                            id = cat.id,
-                                            url = cat.url,
-                                            name = breed?.name ?: "Unknown",
-                                            lifeSpan = breed?.life_span ?: "Unknown"
-                                        )
-
-                                        if (isFavorite) {
-                                            repository.addFavorite(favoriteCat)
-                                        } else {
-                                            repository.removeFavorite(favoriteCat)
-                                        }
-                                    }
+                                    viewModel.toggleFavorite()
                                 }
                                 .padding(8.dp)
                         )
                     }
 
-                    // Display cat information
                     cat.breeds.firstOrNull()?.let { breed ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = breed.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)

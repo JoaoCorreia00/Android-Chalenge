@@ -1,8 +1,5 @@
 package com.example.androidchalenge.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,28 +7,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import com.example.androidchalenge.R
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.androidchalenge.data.AppDatabase
 import com.example.androidchalenge.data.Breed
 import com.example.androidchalenge.data.CatImage
 import com.example.androidchalenge.data.CatRepository
+import com.example.androidchalenge.data.FavoriteCat
 import com.example.androidchalenge.screen.ui.BottomNavBar
-import kotlinx.coroutines.launch
+import com.example.androidchalenge.screen.ui.CatSquareWithInfo
+import com.example.androidchalenge.viewModel.FavoriteViewModel
+import com.example.androidchalenge.viewModel.ViewModelFactory
 
 @Composable
 fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostController) {
     val context = LocalContext.current
-    val database = AppDatabase.getDatabase(context)
-    val repository = remember { CatRepository(database.catDao()) }
-    val favorites by repository.allFavorites.collectAsState(initial = emptyList())
-    val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val repository = remember { CatRepository(AppDatabase.getDatabase(context).catDao()) }
+    val viewModel: FavoriteViewModel = viewModel(factory = ViewModelFactory(repository))
+
+    val favorites by viewModel.favorites.collectAsState()
 
     Scaffold(
         bottomBar = { BottomNavBar(navController, "favorite") }
@@ -40,7 +35,7 @@ fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostControll
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(scrollState),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (favorites.isEmpty()) {
@@ -51,28 +46,12 @@ fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostControll
                         Row {
                             rowFavorites.forEach { favoriteCat ->
                                 CatSquareWithInfo(
-                                    cat = CatImage(
-                                        id = favoriteCat.id,
-                                        url = favoriteCat.url,
-                                        breeds = listOf(
-                                            Breed(
-                                                name = favoriteCat.name,
-                                                life_span = favoriteCat.lifeSpan,
-                                                id = "",
-                                                origin = "",
-                                                temperament = "",
-                                                description = ""
-                                            )
-                                        )
-                                    ),
+                                    cat = favoriteCat.toCatImage(), // Convert FavoriteCat to CatImage
                                     onCatClick = {
                                         navController.navigate("detail/${favoriteCat.id}")
                                     },
-                                    onStarClick = {
-                                        coroutineScope.launch {
-                                            // Remove from Room database
-                                            repository.removeFavorite(favoriteCat)
-                                        }
+                                    onStarClick = { isFavorite ->
+                                        viewModel.removeFavorite(favoriteCat)
                                     }
                                 )
                             }
@@ -83,66 +62,11 @@ fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostControll
         }
     }
 }
-
-@Composable
-fun CatSquareWithInfo(
-    cat: CatImage,
-    onCatClick: () -> Unit,
-    onStarClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(150.dp)
-                .clickable(onClick = onCatClick)
-        ) {
-            // Cat image
-            Image(
-                painter = rememberAsyncImagePainter(cat.url),
-                contentDescription = "Cat Image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Star in top-right corner
-            Image(
-                painter = painterResource(R.mipmap.stargoldfill),
-                contentDescription = "Remove Favorite",
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.TopEnd)
-                    .clickable(
-                        onClick = {
-                            onStarClick()
-                        },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    )
-                    .padding(4.dp)
-            )
-        }
-
-        // Breed name text
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val breed = cat.breeds.firstOrNull()
-            Text(
-                text = breed?.name ?: "Unknown",
-                modifier = Modifier.padding(top = 8.dp),
-                style = MaterialTheme.typography.bodySmall
-            )
-            breed?.life_span?.let { lifespan ->
-                val maxLifespan = lifespan.split(" - ").lastOrNull()
-                Text(
-                    text = "Lifespan: $maxLifespan years",
-                    modifier = Modifier.padding(top = 1.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
+fun FavoriteCat.toCatImage(): CatImage {
+    return CatImage(
+        id = this.id,
+        url = this.url,
+        breeds = listOf(Breed(name = this.name, life_span = this.lifeSpan, id = "", origin = "", temperament = "", description = "")),
+        isFavorite = true  // Set to true since this is a favorite
+    )
 }

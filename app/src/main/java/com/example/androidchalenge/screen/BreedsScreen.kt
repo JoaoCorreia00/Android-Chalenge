@@ -11,27 +11,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.androidchalenge.data.AppDatabase
 import com.example.androidchalenge.data.CatBreed
-import com.example.androidchalenge.data.fetchCatBreeds
+import com.example.androidchalenge.data.CatRepository
 import com.example.androidchalenge.screen.ui.BottomNavBar
-import kotlinx.coroutines.launch
+import com.example.androidchalenge.viewModel.BreedsViewModel
+import com.example.androidchalenge.viewModel.ViewModelFactory
 
 @Composable
 fun BreedsScreen(modifier: Modifier = Modifier, navController: NavHostController) {
-    var breeds by remember { mutableStateOf<List<CatBreed>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val repository = remember { CatRepository(AppDatabase.getDatabase(context).catDao()) }
+    val viewModel: BreedsViewModel = viewModel(factory = ViewModelFactory(repository))
 
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            breeds = fetchCatBreeds()
-            loading = false
-        }
-    }
+    val breeds by viewModel.breeds.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val scrollState = rememberScrollState()
 
     Scaffold(
         bottomBar = { BottomNavBar(navController, "breed") }
