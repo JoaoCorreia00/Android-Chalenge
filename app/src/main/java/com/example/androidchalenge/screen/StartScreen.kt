@@ -35,10 +35,12 @@ fun StartScreen(modifier: Modifier = Modifier, navController: NavHostController,
     val filteredBreeds by viewModel.filteredBreeds.collectAsState()
     val showSuggestions by viewModel.showSuggestions.collectAsState()
 
-    // Set initial search text and trigger search if coming from BreedsScreen
     LaunchedEffect(breedName) {
         if (breedName != null) {
             viewModel.searchCats(breedName)
+        }
+        else{
+            viewModel.loadInitialCats()
         }
     }
 

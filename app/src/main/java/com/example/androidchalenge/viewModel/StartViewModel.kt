@@ -47,11 +47,10 @@ class StartViewModel(private val repository: CatRepository) : ViewModel() {
     init {
         viewModelScope.launch {
             _breeds.value = repository.getCatBreeds()
-            loadInitialCats()
         }
     }
 
-    private suspend fun loadInitialCats() {
+    suspend fun loadInitialCats() {
         _loading.value = true
         val initialCats = repository.getCatImages(page = _currentPage.value, limit = itemsPerPage)
         val favorites = repository.allFavorites.first()
