@@ -141,12 +141,12 @@ class StartViewModel(private val repository: CatRepository) : ViewModel() {
                 lifeSpan = breed?.life_span ?: "Unknown",
             )
             if (isFavorite) {
-                repository.addFavorite(favoriteCat)
-            } else {
                 repository.removeFavorite(favoriteCat)
+            } else {
+                repository.addFavorite(favoriteCat)
             }
             _catImages.value = _catImages.value.map {
-                if (it.id == cat.id) it.copy(isFavorite = isFavorite) else it
+                if (it.id == cat.id) it.copy(isFavorite = !isFavorite) else it
             }
         }
     }
