@@ -13,7 +13,7 @@ class FavoriteViewModel(private val repository: CatRepository): ViewModel() {
     private val _favorites = MutableStateFlow<List<FavoriteCat>>(emptyList())
     val favorites: StateFlow<List<FavoriteCat>> = _favorites.asStateFlow()
 
-    init {
+    fun loadFavoriteCats() {
         viewModelScope.launch {
             repository.allFavorites.collect {
                 _favorites.value = it

@@ -28,6 +28,10 @@ fun FavoriteScreen(modifier: Modifier = Modifier, navController: NavHostControll
 
     val favorites by viewModel.favorites.collectAsState()
 
+    LaunchedEffect("") {
+        viewModel.loadFavoriteCats()
+    }
+
     Scaffold(
         bottomBar = { BottomNavBar(navController, "favorite") }
     ) { paddingValues ->

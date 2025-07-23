@@ -17,11 +17,7 @@ class BreedsViewModel(private val repository: CatRepository) : ViewModel() {
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    init {
-        fetchBreeds()
-    }
-
-    private fun fetchBreeds() {
+    fun fetchBreeds() {
         viewModelScope.launch {
             _loading.value = true
             _breeds.value = repository.getCatBreeds()

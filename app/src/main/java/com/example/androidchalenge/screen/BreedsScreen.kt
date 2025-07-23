@@ -33,6 +33,10 @@ fun BreedsScreen(modifier: Modifier = Modifier, navController: NavHostController
     val loading by viewModel.loading.collectAsState()
     val scrollState = rememberScrollState()
 
+    LaunchedEffect("") {
+        viewModel.fetchBreeds()
+    }
+
     Scaffold(
         bottomBar = { BottomNavBar(navController, "breed") }
     ) { paddingValues ->

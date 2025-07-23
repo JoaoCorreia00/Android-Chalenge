@@ -30,6 +30,7 @@ android {
         }
         debug {
             enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
     }
 
@@ -46,24 +47,7 @@ android {
 }
 
 jacoco {
-    toolVersion = "0.8.7"
-}
-
-tasks.register("jacocoTestReport", JacocoReport::class) {
-    dependsOn(tasks.named("testDebugUnitTest"))
-
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
-
-    val fileFilter = listOf("**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*", "**/*Test*.*", "android/**/*.*")
-    val debugTree = project.fileTree(mapOf("dir" to "${layout.buildDirectory.asFile.get()}/intermediates/javac/debug", "excludes" to fileFilter))
-    val mainSrc = "${project.projectDir}/src/main/java"
-
-    sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(project.fileTree(mapOf("dir" to layout.buildDirectory.asFile.get(), "includes" to listOf("jacoco/testDebugUnitTest.exec"))))
+    toolVersion = "0.8.13"
 }
 
 dependencies {
@@ -85,6 +69,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("app.cash.turbine:turbine:1.2.1")
     testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("androidx.arch.core:core-testing:2.1.0")
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
