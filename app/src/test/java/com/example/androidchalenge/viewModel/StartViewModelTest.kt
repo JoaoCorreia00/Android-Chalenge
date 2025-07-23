@@ -59,4 +59,30 @@ class StartViewModelTest {
         assertEquals(catImages, viewModel.catImages.value)
         assertEquals(false, viewModel.noResults.value)
     }
+
+    @Test
+    fun `searchCats should set noResults to true when no matching breeds found`() = runTest {
+        val catBreed = listOf(CatBreed("Siamese", "Siamese"))
+
+        `when`(repository.getCatBreeds()).thenReturn(catBreed)
+        `when`(repository.allFavorites).thenReturn(flowOf(emptyList()))
+
+        viewModel.searchCats("Persian")
+
+        assertEquals(emptyList<CatImage>(), viewModel.catImages.value)
+        assertEquals(true, viewModel.noResults.value)
+    }
+
+    @Test
+    fun `loadMoreCats should load more cats`() = runTest {
+        val breeds = listOf(Breed("Siamese", "12 years", "Asia", "Friendly", "A friendly breed", "1"))
+        val catImages = listOf(CatImage("1", "url1", breeds), CatImage("2", "url2", breeds))
+
+        `when`(repository.getCatImages(1, 10)).thenReturn(catImages)
+        `when`(repository.allFavorites).thenReturn(flowOf(emptyList()))
+
+        viewModel.loadMoreCats()
+
+        assertEquals(catImages, viewModel.catImages.value)
+    }
 }
